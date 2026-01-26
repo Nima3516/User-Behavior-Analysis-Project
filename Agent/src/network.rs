@@ -1,32 +1,51 @@
-use sysinfo::Networks;
-use crate::logger;
 use std::collections::HashMap;
-use std::sync::Mutex;
-use once_cell::sync::Lazy;
+use std::thread;
+use std::time::Duration;
 
-// Global, safe, thread-safe storage
-static PREVIOUS: Lazy<Mutex<HashMap<String, (u64, u64)>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+use chrono::Utc;
+use sysinfo::{NetworkExt, NetworksExt, System, SystemExt};
 
-pub fn collect() {
-    let mut networks = Networks::new_with_refreshed_list();
-    networks.refresh();
+use crate::logger::log_line;
 
-    let mut prev_map = PREVIOUS.lock().unwrap();
+pub fn start_network_monitor() {
+    // Create system object ONCE
+    let mut sys = System::new_all();
 
-    for (name, data) in networks.iter() {
-        let current_sent = data.transmitted();
-        let current_received = data.received();
+    // Store previous counters here (interface -> (rx, tx))
+    let mut previous: HashMap<String, (u64, u64)> = HashMap::new();
 
-        let (prev_sent, prev_received) =
-            prev_map.get(name).cloned().unwrap_or((current_sent, current_received));
+    loop {
+        // Refresh network statistics
+        sys.refresh_networks();
 
-        let delta_sent = current_sent - prev_sent;
-        let delta_received = current_received - prev_received;
+        for (iface, data) in sys.networks() {
+            let current_rx = data.received();
+            let current_tx = data.transmitted();
 
-        logger::log_network_delta(name, delta_sent, delta_received);
+            // If we have previous data, calculate interval usage
+            if let Some((prev_rx, prev_tx)) = previous.get(iface) {
+                let interval_rx = current_rx.saturating_sub(*prev_rx);
+                let interval_tx = current_tx.saturating_sub(*prev_tx);
 
-        prev_map.insert(name.to_string(), (current_sent, current_received));
+                let timestamp = Utc::now();
+
+                let line = format!(
+                    "{} | {} | interval_sent={} | interval_received={}",
+                    timestamp,
+                    iface,
+                    interval_tx,
+                    interval_rx
+                );
+
+                log_line(&line);
+            }
+
+            // Update previous values
+            previous.insert(iface.to_string(), (current_rx, current_tx));
+        }
+
+        // Wait before next sample
+        thread::sleep(Duration::from_secs(5));
     }
 }
 
