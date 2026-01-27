@@ -14,7 +14,7 @@ pub fn collect() {
         .find(|iface| iface.is_up() && !iface.is_loopback())
         .expect("No valid interface found");
 
-    let (_, mut rx) = match datalink::channel(&interface, Default::default()) {
+    let mut rx = match datalink::channel(&interface, Default::default()) {
         Ok(Ethernet(_, rx)) => rx,
         Ok(_) => panic!("Unhandled channel type"),
         Err(e) => panic!("Failed to create channel: {}", e),
