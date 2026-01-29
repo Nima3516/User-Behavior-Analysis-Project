@@ -1,35 +1,20 @@
-use pnet::datalink::{self, Channel::Ethernet};
-use pnet::packet::{
-    ethernet::EthernetPacket,
-    ip::IpNextHeaderProtocols,
-    ipv4::Ipv4Packet,
-    udp::UdpPacket,
-    Packet,
-};
+use chrono::Utc;
+use systemd::journal;
+use crate::logger;
 
 pub fn collect() {
-    let interfaces = datalink::interfaces();
-    let interface = interfaces
-        .into_iter()
-        .find(|iface| iface.is_up() && !iface.is_loopback())
-        .expect("No valid interface found");
+    let mut journal = journal::Journal::open(journal::JournalFiles::All, false, false)
+        .expect("Cannot open systemd journal");
 
-    let mut rx = match datalink::channel(&interface, Default::default()) {
-        Ok(Ethernet(_, rx)) => rx,
-        Ok(_) => panic!("Unhandled channel type"),
-        Err(e) => panic!("Failed to create channel: {}", e),
-    };
+    // Filter for systemd-resolved messages
+    journal.match_add("SYSLOG_IDENTIFIER=systemd-resolved").unwrap();
 
-    if let Ok(packet) = rx.next() {
-        if let Some(eth) = EthernetPacket::new(packet) {
-            if let Some(ipv4) = Ipv4Packet::new(eth.payload()) {
-                if ipv4.get_next_level_protocol() == IpNextHeaderProtocols::Udp {
-                    if let Some(udp) = UdpPacket::new(ipv4.payload()) {
-                        if udp.get_destination() == 53 {
-                            println!("DNS packet detected (query)");
-                        }
-                    }
-                }
+    while let Some(entry) = journal.next_entry().unwrap() {
+        if let Some(message) = entry.get("MESSAGE") {
+            if message.contains("query") {
+                println!("DNS QUERY: {}", message);
+                // Optionally log to file
+                // logger::log_dns_query(message);
             }
         }
     }
