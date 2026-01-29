@@ -1,40 +1,49 @@
-use std::collections::HashMap;
-use std::thread;
-use std::time::Duration;
-
-use sysinfo::Networks;
-
-use crate::logger::log_network_delta;
+use pnet::datalink::{self, Channel::Ethernet};
+use pnet::packet::{ethernet::EthernetPacket, ip::IpNextHeaderProtocols, ipv4::Ipv4Packet, udp::UdpPacket, Packet};
+use dns_parser::Packet as DnsPacket;
+use crate::logger;
 
 pub fn collect() {
-    // Create Networks object (NOT System)
-    let mut networks = Networks::new_with_refreshed_list();
+    // Find your network interface (replace "enp2s0" with your actual interface if needed)
+    let interfaces = datalink::interfaces();
+    let interface = interfaces
+        .into_iter()
+        .find(|iface| iface.is_up() && !iface.is_loopback() && iface.name == "enp2s0")
+        .expect("No valid network interface found");
 
-    // Store previous counters: interface -> (rx, tx)
-    let mut previous: HashMap<String, (u64, u64)> = HashMap::new();
+    // Create a channel to listen to packets
+    let channel = datalink::channel(&interface, Default::default())
+        .expect("Failed to create datalink channel");
+
+    let mut rx = match channel {
+        Ethernet(_, rx) => rx,
+        _ => panic!("Unhandled channel type"),
+    };
 
     loop {
-        // Refresh network data
-        networks.refresh();
-
-        for (iface, data) in networks.iter() {
-            let current_rx = data.received();
-            let current_tx = data.transmitted();
-
-            if let Some((prev_rx, prev_tx)) = previous.get(iface) {
-                let interval_rx = current_rx.saturating_sub(*prev_rx);
-                let interval_tx = current_tx.saturating_sub(*prev_tx);
-
-                log_network_delta(iface, interval_tx, interval_rx);
+        if let Ok(packet) = rx.next() {
+            if let Some(eth) = EthernetPacket::new(packet) {
+                if let Some(ipv4) = Ipv4Packet::new(eth.payload()) {
+                    if ipv4.get_next_level_protocol() == IpNextHeaderProtocols::Udp {
+                        if let Some(udp) = UdpPacket::new(ipv4.payload()) {
+                            // DNS queries are usually on port 53
+                            if udp.get_destination() == 53 || udp.get_source() == 53 {
+                                if let Ok(dns_packet) = DnsPacket::parse(udp.payload()) {
+                                    // Log all queried domain names
+                                    for question in dns_packet.questions {
+                                        let domain = question.qname.to_string();
+                                        println!("DNS QUERY: {}", domain);
+                                        logger::log_dns_query(&domain);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
-
-            previous.insert(iface.to_string(), (current_rx, current_tx));
         }
-
-        thread::sleep(Duration::from_secs(5));
     }
 }
-
 
 
 
