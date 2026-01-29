@@ -1,4 +1,3 @@
-use chrono::Utc;
 use pnet::datalink::{self, Channel::Ethernet};
 use pnet::packet::{ethernet::EthernetPacket, ip::IpNextHeaderProtocols, ipv4::Ipv4Packet, udp::UdpPacket, Packet};
 use regex::Regex;
@@ -49,4 +48,5 @@ pub fn collect() {
         } // end if rx.next()
     } // end loop
 } // end fn
+
 
