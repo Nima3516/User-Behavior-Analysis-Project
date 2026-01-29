@@ -12,3 +12,4 @@ clap = { version = "4.4", features = ["derive"] }
 once_cell = "1.19"
 pnet = "0.34"
 systemd = "0.7"
+regex = "1"
