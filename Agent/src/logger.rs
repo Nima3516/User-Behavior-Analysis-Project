@@ -18,3 +18,20 @@ pub fn log_network_delta(interface: &str, sent: u64, received: u64) {
 
     file.write_all(log.as_bytes()).unwrap();
 }
+pub fn log_dns_query(domain: &str) {
+    let log = format!(
+        "{} | {}\n",
+        chrono::Utc::now().to_rfc3339(),
+        domain
+    );
+
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("dns.log")
+        .unwrap();
+
+    file.write_all(log.as_bytes()).unwrap();
+}
+
+
