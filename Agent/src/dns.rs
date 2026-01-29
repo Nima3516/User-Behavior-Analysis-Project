@@ -16,7 +16,7 @@ pub fn collect() {
     let channel = datalink::channel(&interface, Default::default())
         .expect("Failed to create datalink channel");
 
-    // We only need the receiver
+    // Extract receiver
     let mut rx = match channel {
         Ethernet(_, rx) => rx,
         _ => panic!("Unhandled channel type"),
@@ -34,7 +34,6 @@ pub fn collect() {
                             // DNS queries use port 53
                             if udp.get_destination() == 53 {
                                 let payload = udp.payload();
-                                // Convert payload to printable string
                                 if let Ok(text) = std::str::from_utf8(payload) {
                                     for cap in domain_regex.captures_iter(text) {
                                         let domain = &cap[0];
@@ -42,6 +41,12 @@ pub fn collect() {
                                         logger::log_dns_query(domain);
                                     }
                                 }
-                            }
-
+                            } // end if udp port 53
+                        } // end if udp packet
+                    } // end if udp protocol
+                } // end if ipv4 packet
+            } // end if ethernet packet
+        } // end if rx.next()
+    } // end loop
+} // end fn
 
