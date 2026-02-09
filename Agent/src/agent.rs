@@ -6,7 +6,9 @@ pub fn run() {
     loop {
         network::collect();
         dns::collect();
+        app_monitor::collect();
         thread::sleep(Duration::from_secs(5));
     }
 }
+
 
