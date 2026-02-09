@@ -1,6 +1,7 @@
-use sysinfo::{System, SystemExt, ProcessExt};
+use sysinfo::System;
 use std::{collections::HashSet, thread, time::Duration};
 use crate::logger::log_application;
+
 
 pub fn collect() {
     let mut system = System::new_all();
