@@ -34,4 +34,30 @@ pub fn log_dns_query(domain: &str) {
     file.write_all(log.as_bytes()).unwrap();
 }
 
+pub fn log_application(
+    pid: i32,
+    name: &str,
+    cpu: f32,
+    memory: u64,
+    exe: Option<&str>,
+) {
+    let log = format!(
+        "{} | pid={} | name={} | cpu={} | mem={} KB | exe={}\n",
+        chrono::Local::now().to_rfc3339(),
+        pid,
+        name,
+        cpu,
+        memory,
+        exe.unwrap_or("unknown"),
+    );
+
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("applications.log")
+        .unwrap();
+
+    file.write_all(log.as_bytes()).unwrap();
+}
+
 
