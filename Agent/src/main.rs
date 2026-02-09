@@ -5,6 +5,7 @@ mod logger;
 mod report;
 mod screen;
 mod dns;
+mod app_monitor;
 
 use clap::{Parser, Subcommand};
 
