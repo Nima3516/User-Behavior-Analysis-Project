@@ -1,7 +1,5 @@
-use std::{thread, time::Duration};
-use crate::network;
-use crate::dns;
 use std::thread;
+use std::time::Duration;
 
 pub fn run() {
     println!("Agent is running...");
@@ -19,7 +17,7 @@ pub fn run() {
     });
 
     loop {
-        std::thread::sleep(std::time::Duration::from_secs(60));
+        thread::sleep(Duration::from_secs(60));
     }
 }
 
