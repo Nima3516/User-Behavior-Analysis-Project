@@ -1,4 +1,4 @@
-use sysinfo::{NetworksExt, System, SystemExt};
+use sysinfo::{Networks};
 use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
@@ -7,17 +7,19 @@ use crate::logger;
 pub fn collect() {
     println!("Network bandwidth monitoring started");
 
-    let mut sys = System::new_all();
+    let mut networks = Networks::new_with_refreshed_list();
     let mut previous: HashMap<String, (u64, u64)> = HashMap::new();
 
     loop {
-        sys.refresh_networks();
+        networks.refresh();
 
-        for (iface, data) in sys.networks() {
-            let sent = data.transmitted();
-            let received = data.received();
+        for (iface, data) in &networks {
+            let sent = data.total_transmitted();
+            let received = data.total_received();
 
-            let entry = previous.entry(iface.to_string()).or_insert((sent, received));
+            let entry = previous
+                .entry(iface.to_string())
+                .or_insert((sent, received));
 
             let delta_sent = sent - entry.0;
             let delta_received = received - entry.1;
@@ -36,5 +38,3 @@ pub fn collect() {
         thread::sleep(Duration::from_secs(5));
     }
 }
-
-
