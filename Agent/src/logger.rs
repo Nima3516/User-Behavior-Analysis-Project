@@ -14,7 +14,7 @@ pub fn log_network_delta(interface: &str, sent: u64, received: u64) {
         received
     );
 
-    let mut file = OpenOptions::new()
+        let mut file = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open("network.log")
@@ -70,4 +70,5 @@ pub fn log_application(
 
     file.write_all(log.as_bytes()).unwrap();
 }
+
 
