@@ -7,14 +7,14 @@ use std::io::Write;
    ======================= */
 pub fn log_network_delta(interface: &str, sent: u64, received: u64) {
     let log = format!(
-        "{} | iface={} | interval_sent={} | interval_received={}\n",
-        Local::now().to_rfc3339(),
+        "{} | interface={} | sent={} bytes | received={} bytes\n",
+        chrono::Local::now().to_rfc3339(),
         interface,
         sent,
         received
     );
 
-        let mut file = std::fs::OpenOptions::new()
+    let mut file = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open("network.log")
@@ -22,6 +22,7 @@ pub fn log_network_delta(interface: &str, sent: u64, received: u64) {
 
     file.write_all(log.as_bytes()).unwrap();
 }
+
 
 /* =======================
    DNS LOGGING
@@ -70,5 +71,6 @@ pub fn log_application(
 
     file.write_all(log.as_bytes()).unwrap();
 }
+
 
 
