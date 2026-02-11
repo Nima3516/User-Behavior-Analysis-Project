@@ -1,11 +1,11 @@
-use sysinfo::{Networks};
+use sysinfo::Networks;
 use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
 use crate::logger;
 
 pub fn collect() {
-    println!("Network bandwidth monitoring started");
+    println!("Network bandwidth monitoring started...");
 
     let mut networks = Networks::new_with_refreshed_list();
     let mut previous: HashMap<String, (u64, u64)> = HashMap::new();
